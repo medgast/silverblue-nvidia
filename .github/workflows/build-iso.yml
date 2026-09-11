@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: read # Erlaubt das Auslesen deines GHCR-Images
+      packages: read
 
     steps:
       - name: Checkout Repository
@@ -27,18 +27,18 @@ jobs:
         env:
           OWNER: "${{ github.repository_owner }}"
 
-      # Installiert das BlueBuild-CLI über den offiziellen ublue/bluebuild-Weg direkt auf Ubuntu
+      # Installiert das BlueBuild-CLI nativ über Podman auf dem Runner
       - name: Install BlueBuild CLI
         run: |
           podman run --pull always --rm ghcr.io/blue-build/cli:latest-installer | bash
-          # Fügt das neu installierte CLI dem System-Pfad hinzu, damit wir es im nächsten Schritt nutzen können
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      # Generiert das ISO vollautomatisch aus deinem GHCR-Image
+      # Generiert das ISO mit der korrekten CLI-Syntax und Root-Rechten
       - name: Build ISO via BlueBuild
         run: |
-          bluebuild generate-iso \
-            --ref="ghcr.io/${{ steps.registry_case.outputs.owner_lowercase }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          sudo env "PATH=$PATH" bluebuild generate-iso \
+            --iso-name "${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}.iso" \
+            image "ghcr.io/${{ steps.registry_case.outputs.owner_lowercase }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
 
       # Lädt das fertige ISO als Download-Artefakt hoch
       - name: Upload ISO Artifact
