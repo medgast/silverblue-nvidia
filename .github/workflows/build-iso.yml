@@ -19,10 +19,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Installiert das BlueBuild-CLI-Werkzeug auf dem Runner
-      - name: Install BlueBuild CLI
-        uses: blue-build/cli-installer@v1
-
       # Wandelt deinen Benutzernamen (z.B. Medgast) in reine Kleinbuchstaben um
       - name: Lowercase Repository Owner
         id: registry_case
@@ -30,6 +26,13 @@ jobs:
           echo "owner_lowercase=${OWNER,,}" >> $GITHUB_OUTPUT
         env:
           OWNER: "${{ github.repository_owner }}"
+
+      # Installiert das BlueBuild-CLI über den offiziellen ublue/bluebuild-Weg direkt auf Ubuntu
+      - name: Install BlueBuild CLI
+        run: |
+          podman run --pull always --rm ghcr.io/blue-build/cli:latest-installer | bash
+          # Fügt das neu installierte CLI dem System-Pfad hinzu, damit wir es im nächsten Schritt nutzen können
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       # Generiert das ISO vollautomatisch aus deinem GHCR-Image
       - name: Build ISO via BlueBuild
