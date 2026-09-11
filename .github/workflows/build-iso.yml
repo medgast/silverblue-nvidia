@@ -1,0 +1,41 @@
+name: Generate ISO Manually
+
+on:
+  workflow_dispatch: # Ermöglicht den manuellen Start per Klick
+
+env:
+  IMAGE_NAME: "vanilla-nvidia" # <- Passe dies exakt an den kleingeschriebenen Namen aus deiner recipe.yml an!
+  IMAGE_TAG: "latest"
+
+jobs:
+  build-iso:
+    name: Generate ISO
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Generiert das ISO-Abbild basierend auf deinem gerade gebauten GHCR-Image
+      - name: Build ISO
+        uses: blue-build/apps-installer@v1
+        with:
+          installer_image: "ghcr.io/ublue-os/installer"
+          installer_version: "latest"
+          # Hier wird die Verknüpfung zu deinem frisch gebauten Image hergestellt
+          iso_image: "ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}"
+          iso_version: "${{ env.IMAGE_TAG }}"
+
+      # Lädt das fertige ISO als "Artifact" hoch, damit du es direkt im Browser herunterladen kannst
+      - name: Upload ISO Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}-iso
+          path: |
+            *.iso
+            *.iso.sha256
+          if-no-files-found: error
+          retention-days: 5 # Das ISO wird nach 5 Tagen automatisch gelöscht, um deinen Speicherplatz zu schonen
