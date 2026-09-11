@@ -11,17 +11,17 @@ jobs:
   build-iso:
     name: Generate ISO
     runs-on: ubuntu-latest
-    container:
-      image: fedora:latest
-      options: --privileged # Zwingend erforderlich für Loop-Devices beim ISO-Bau
     permissions:
       contents: read
-      packages: write
-      id-token: write
+      packages: read # Erlaubt das Auslesen deines GHCR-Images
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      # Installiert das BlueBuild-CLI-Werkzeug auf dem Runner
+      - name: Install BlueBuild CLI
+        uses: blue-build/cli-installer@v1
 
       # Wandelt deinen Benutzernamen (z.B. Medgast) in reine Kleinbuchstaben um
       - name: Lowercase Repository Owner
@@ -31,18 +31,11 @@ jobs:
         env:
           OWNER: "${{ github.repository_owner }}"
 
-      # Nutzt das in Fedora eingebaute Podman für den Login anstelle der Docker Action
-      - name: Log in to GitHub Container Registry via Podman
+      # Generiert das ISO vollautomatisch aus deinem GHCR-Image
+      - name: Build ISO via BlueBuild
         run: |
-          podman login ghcr.io -u ${{ github.actor }} -p ${{ github.token }}
-
-      # Baut das ISO
-      - name: Build ISO using UBlue Isogenerator
-        uses: ublue-os/isogenerator@main
-        with:
-          IMAGE_REPO: "ghcr.io/${{ steps.registry_case.outputs.owner_lowercase }}"
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          bluebuild generate-iso \
+            --ref="ghcr.io/${{ steps.registry_case.outputs.owner_lowercase }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
 
       # Lädt das fertige ISO als Download-Artefakt hoch
       - name: Upload ISO Artifact
@@ -50,7 +43,7 @@ jobs:
         with:
           name: ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}-iso
           path: |
-            build/*.iso
-            build/*.iso.sha256
+            *.iso
+            *.iso.sha256
           if-no-files-found: error
           retention-days: 5
