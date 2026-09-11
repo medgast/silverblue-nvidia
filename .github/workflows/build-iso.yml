@@ -11,10 +11,9 @@ jobs:
   build-iso:
     name: Generate ISO
     runs-on: ubuntu-latest
-    # HIER IST DIE LÖSUNG: Wir zwingen GitHub, in einer Fedora-Umgebung zu arbeiten
     container:
       image: fedora:latest
-      options: --privileged # Benötigt für Mount-Rechte beim ISO-Bau
+      options: --privileged # Zwingend erforderlich für Loop-Devices beim ISO-Bau
     permissions:
       contents: read
       packages: write
@@ -32,13 +31,10 @@ jobs:
         env:
           OWNER: "${{ github.repository_owner }}"
 
-      # Meldet den Runner bei GHCR an, damit er dein Image lesen darf
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+      # Nutzt das in Fedora eingebaute Podman für den Login anstelle der Docker Action
+      - name: Log in to GitHub Container Registry via Podman
+        run: |
+          podman login ghcr.io -u ${{ github.actor }} -p ${{ github.token }}
 
       # Baut das ISO
       - name: Build ISO using UBlue Isogenerator
